@@ -22,7 +22,7 @@
 #define ACCEL_CALC 0
 #define MEASURED_ANGLES 0
 #define THROTTLE_SIGNALS 0
-
+#define ULTRASONIC 0
 
 /* Motors */
 #define MAX_MOTOR_SPEED 60
@@ -34,6 +34,7 @@
 #define FLIGHT_TIME 10
 /* If 1, will use BMP180. If 0, will use ultrasonic range finder */
 #define ALTIMETER 0
+#define MPU_THERMOMETER 1
 
 TFT screen = TFT(lcd_cs, dc, rst);
 

@@ -1,5 +1,3 @@
-
-
 float get_pressure()
 {
   char status;
@@ -64,34 +62,27 @@ float get_ultrasonic_altitude()
   delayMicroseconds(10);
   digitalWrite(trig, LOW);
   long duration = pulseIn(echo, HIGH);
+#if ULTRASONIC == 1
   Serial.print("Duration: ");
   Serial.println(duration);
+#endif
   /* Sometimes the ultrasonic gives ridiculous values (on the order of 167k) despite max value only being 23529 */
   if (duration > 23500)
     return prev_ultrasonic_altitude;
-  prev_ultrasonic_altitude = ((float)duration * 0.034f / 2.0f) / 100.0f;
-  return prev_ultrasonic_altitude;
+  return prev_ultrasonic_altitude = ((float)duration * 0.00017); //duration * 340 m/s / 1,000,000 us/s / 2
 }
 
-float get_altitude(float Pressure)
+float get_bmp_altitude()
 {
-#if ALTIMETER == 1
-  return altimeter.altitude(Pressure, baseline_pressure);
-#else
-  return get_ultrasonic_altitude();
-#endif
-
+  return (float)altimeter.altitude(get_pressure(), baseline_pressure);
 }
 
 float get_altitude()
 {
-
-#if ALTIMETER == 1
-  return (altimeter.altitude(get_pressure(), baseline_pressure) + altimeter.altitude(get_pressure(), baseline_pressure)
-          + altimeter.altitude(get_pressure(), baseline_pressure) + altimeter.altitude(get_pressure(), baseline_pressure)) / 4.0f;
-#else
-  return get_ultrasonic_altitude();
-#endif
+  float alt = get_ultrasonic_altitude();
+  if (alt > 2.0f)
+    return get_bmp_altitude();
+  return alt;
 }
 
 void update_mpu()
@@ -100,11 +91,11 @@ void update_mpu()
   Wire.write(0x3B);
   Wire.endTransmission(false);
   Wire.requestFrom(mpu_address, 14, true);
-  const float alpha = 0.98;
+  const float alpha = 0.98f;
   float fax = (Wire.read() << 8 | Wire.read()) / 16384.0f;
   float fay = (Wire.read() << 8 | Wire.read()) / 16384.0f;
   float faz = (Wire.read() << 8 | Wire.read()) / 16384.0f;
-  temperature = ((Wire.read() << 8 | Wire.read()) / 340.0f) + 35;
+  temperature = ((Wire.read() << 8 | Wire.read()) / 340.0f) - 35.0f; //This should (theoretically) be garbage, if we turned the temperature sensor off earlier
   gx = (Wire.read() << 8 | Wire.read()) / 131.0f + 15.0f;
   gy = (Wire.read() << 8 | Wire.read()) / 131.0f + -1.0f;
   gz = (Wire.read() << 8 | Wire.read()) / 131.0f + 2.0f;
@@ -141,7 +132,11 @@ void init_sensors()
   Wire.begin();
   Wire.beginTransmission(mpu_address);
   Wire.write(0x6B);
+#if MPU_THERMOMETER == 1
   Wire.write(0);
+#else
+  Wire.write(0 | (1 << 3)); //disables the temperature sensor
+#endif
   Wire.endTransmission();
 
   if (altimeter.begin())
@@ -201,23 +196,24 @@ void update_sensors()
   static long alt_time = 0;
   static long rate_time = 0;
   static long att_time = 0;
-  if(millis() - rate_time >= rate_dt)
+  if (millis() - rate_time >= rate_dt)
   {
-    update_rates();
+    correct_rates();
     rate_time = millis();
   }
-  if(millis() - att_time >= attitude_dt)
+  if (millis() - att_time >= attitude_dt)
   {
     sample_controller();
     correct_attitude();
     att_time = millis();
   }
-  if(millis() - alt_time >= altitude_dt)
+  if (millis() - alt_time >= altitude_dt)
   {
-    //temperature = (get_temperature() + temperature) / 2.0f;
-    temperature = get_temperature();
-    update_altitude(temperature);
+#if MPU_THERMOMETER == 1
+    update_altitude((get_temperature() + temperature) / 2.0f);
+#else
+    update_altitude(get_temperature());
+#endif
     alt_time = millis();
   }
 }
-

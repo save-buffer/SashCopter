@@ -84,7 +84,6 @@ bool update_attention()
         break;
     }
   }
-
-
+  return true;
 }
 

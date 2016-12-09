@@ -1,8 +1,8 @@
 void correct_rates()
 {
-  double e_roll = target_roll_rate - measured_roll_rate;
-  double e_pitch = target_pitch_rate - measured_pitch_rate;
-  double e_yaw = target_yaw_rate - measured_yaw_rate;
+  float e_roll = target_roll_rate - measured_roll_rate;
+  float e_pitch = target_pitch_rate - measured_pitch_rate;
+  float e_yaw = target_yaw_rate - measured_yaw_rate;
 
   corrected_roll_rate = roll_rate_controller(e_roll);
   corrected_pitch_rate = pitch_rate_controller(e_pitch);
@@ -20,8 +20,8 @@ void correct_rates()
 
 void correct_attitude()
 {
-  double e_roll = target_roll - measured_roll;
-  double e_pitch = target_pitch - measured_pitch;
+  float e_roll = target_roll - measured_roll;
+  float e_pitch = target_pitch - measured_pitch;
   target_roll_rate += roll_controller(e_roll);
   target_pitch_rate += pitch_controller(e_pitch);
 #if ATTITUDE_PID == 1
@@ -34,7 +34,7 @@ void correct_attitude()
 
 void correct_altitude()
 {
-  double e_alt = target_altitude - measured_altitude;
+  float e_alt = target_altitude - measured_altitude;
   corrected_force = altitude_controller(e_alt);
 #if ALTITUDE_PID == 1
   Serial.print("Corrected force: ");
@@ -42,91 +42,91 @@ void correct_altitude()
 #endif
 }
 
-double altitude_controller(double error)
+float altitude_controller(float error)
 {
-  const double kp = 4;
-  const double ki = 0.5;
-  const double kd = 0.1;
+  const float kp = 4;
+  const float ki = 0.5f;
+  const float kd = 0.1f;
 
-  static double running_sum = 0;
-  static double prev_error = 0;
+  static float running_sum = 0;
+  static float prev_error = 0;
   running_sum += error;
-  double correction = kp * error + ki * ((double)altitude_dt / 1000) * running_sum + kd * (error - prev_error) / ((double)altitude_dt / 1000);
+  float correction = kp * error + ki * ((float)altitude_dt / 1000) * running_sum + kd * (error - prev_error) / ((float)altitude_dt / 1000);
   prev_error = error;
   return correction;
 }
 
 
-double roll_controller(double error)
+float roll_controller(float error)
 {
-  const double kp = 0.08;
-  const double ki = 0.01;
-  const double kd = 0.005;
+  const float kp = 0.08f;
+  const float ki = 0.01f;
+  const float kd = 0.005f;
 
-  static double running_sum = 0;
-  static double prev_error = 0;
+  static float running_sum = 0;
+  static float prev_error = 0;
   running_sum += error;
-  double P = kp * error;
-  double I = ki * ((double)attitude_dt / 1000.0) * running_sum;
-  double D = kd * (error - prev_error) / ((double)attitude_dt / 1000.0);
-  double correction = P + I + D;
+  float P = kp * error;
+  float I = ki * ((float)attitude_dt / 1000.0f) * running_sum;
+  float D = kd * (error - prev_error) / ((float)attitude_dt / 1000.0f);
+  float correction = P + I + D;
   prev_error = error;
   return correction;
 }
 
-double pitch_controller(double error)
+float pitch_controller(float error)
 {
-  const double kp = 0.08;
-  const double ki = 0.01;
-  const double kd = 0.005;
+  const float kp = 0.08f;
+  const float ki = 0.01f;
+  const float kd = 0.005f;
 
-  static double running_sum = 0;
-  static double prev_error = 0;
+  static float running_sum = 0;
+  static float prev_error = 0;
   running_sum += error;
-  double correction = kp * error + ki * ((double)attitude_dt / 1000) * running_sum + kd * (error - prev_error) / ((double)attitude_dt / 1000);
+  float correction = kp * error + ki * ((float)attitude_dt / 1000) * running_sum + kd * (error - prev_error) / ((float)attitude_dt / 1000);
   prev_error = error;
   return correction;
 }
 
-double roll_rate_controller(double error)
+float roll_rate_controller(float error)
 {
-  const double kp = 0.08;
-  const double ki = 0.01;
-  const double kd = 0.005;
+  const float kp = 0.08f;
+  const float ki = 0.01f;
+  const float kd = 0.005f;
 
-  static double running_sum = 0;
-  static double prev_error = 0;
+  static float running_sum = 0;
+  static float prev_error = 0;
   running_sum += error;
-  double correction = kp * error + ki * ((double)rate_dt / 1000) * running_sum + kd * (error - prev_error) / ((double)rate_dt / 1000);
+  float correction = kp * error + ki * ((float)rate_dt / 1000) * running_sum + kd * (error - prev_error) / ((float)rate_dt / 1000);
   prev_error = error;
   return correction;
 }
 
-double pitch_rate_controller(double error)
+float pitch_rate_controller(float error)
 {
 
-  const double kp = 0.08;
-  const double ki = 0.01;
-  const double kd = 0.005;
+  const float kp = 0.08f;
+  const float ki = 0.01f;
+  const float kd = 0.005f;
 
-  static double running_sum = 0;
-  static double prev_error = 0;
+  static float running_sum = 0;
+  static float prev_error = 0;
   running_sum += error;
-  double correction = kp * error + ki * ((double)rate_dt / 1000) * running_sum + kd * (error - prev_error) / ((double)rate_dt / 1000);
+  float correction = kp * error + ki * ((float)rate_dt / 1000) * running_sum + kd * (error - prev_error) / ((float)rate_dt / 1000);
   prev_error = error;
   return correction;
 }
 
-double yaw_rate_controller(double error)
+float yaw_rate_controller(float error)
 {
-  const double kp = 0.3;
-  const double ki = 0.1;
-  const double kd = 0.01;
+  const float kp = 0.3f;
+  const float ki = 0.1f;
+  const float kd = 0.01f;
 
-  static double running_sum = 0;
-  static double prev_error = 0;
+  static float running_sum = 0;
+  static float prev_error = 0;
   running_sum += error;
-  double correction = kp * error + ki * ((double)rate_dt / 1000) * running_sum + kd * (error - prev_error) / ((double)rate_dt / 1000);
+  float correction = kp * error + ki * ((float)rate_dt / 1000) * running_sum + kd * (error - prev_error) / ((float)rate_dt / 1000);
   prev_error = error;
   return correction;
 }

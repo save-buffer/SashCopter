@@ -2,7 +2,7 @@
 void connect_headset()
 {
   Serial.write(0xc2);
-  double attention = 0;
+  float attention = 0;
 }
 
 byte wait_one_byte()
@@ -60,7 +60,7 @@ bool update_attention()
         //headset is connected
         break;
       case 4:
-        attention = payload[++i] / 100.0;
+        attention = payload[++i] / 100.0f;
         break;
       case 2:
         poor_quality = payload[++i];
@@ -74,7 +74,7 @@ bool update_attention()
       case 0xD2:
       case 0xD3:
       case -70:
-        attention = 0.0;
+        attention = 0.0f;
         return false;
       case 0x80:
         i += 3;

@@ -43,8 +43,8 @@ void calc_motor_targets()
   //Weight distribution is very off on my drone, so I add some extra motor strength in the back
   motor_target[0] = EQUILIBRIUM_SPEED + (corrected_roll_rate + corrected_pitch_rate + corrected_yaw_rate + corrected_force);
   motor_target[1] = EQUILIBRIUM_SPEED + (-corrected_roll_rate + corrected_pitch_rate - corrected_yaw_rate + corrected_force);
-  motor_target[2] = EQUILIBRIUM_SPEED + (-corrected_roll_rate - corrected_pitch_rate + corrected_yaw_rate + corrected_force) + 1;
-  motor_target[3] = EQUILIBRIUM_SPEED + (corrected_roll_rate - corrected_pitch_rate - corrected_yaw_rate + corrected_force) + 1;
+  motor_target[2] = EQUILIBRIUM_SPEED + (-corrected_roll_rate - corrected_pitch_rate + corrected_yaw_rate + corrected_force) + BACK_BONUS;
+  motor_target[3] = EQUILIBRIUM_SPEED + (corrected_roll_rate - corrected_pitch_rate - corrected_yaw_rate + corrected_force) + BACK_BONUS;
 
   for (int i = 0; i < 4; i++)
   {

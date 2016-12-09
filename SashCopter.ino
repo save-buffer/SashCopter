@@ -23,9 +23,12 @@
 #define MEASURED_ANGLES 0
 #define THROTTLE_SIGNALS 0
 
+
+/* Motors */
 #define MAX_MOTOR_SPEED 60
 #define MIN_MOTOR_SPEED 0
 #define EQUILIBRIUM_SPEED 45
+#define BACK_BONUS 5
 
 /* In Seconds */
 #define FLIGHT_TIME 10
@@ -35,32 +38,32 @@
 TFT screen = TFT(lcd_cs, dc, rst);
 
 SFE_BMP180 altimeter;
-double baseline_pressure;
+float baseline_pressure;
 const int mpu_address = 0x68;
 
-double ax, ay, az, temperature, gx, gy, gz;
+float ax, ay, az, temperature, gx, gy, gz;
 
-const double K = 1.0;
+const float K = 1.0f;
 const long rate_dt = 30;
 const long attitude_dt = 60;
 const long altitude_dt = 90;
 
 int p_count;
-double avg_pressure;
-double mpu_roll, mpu_pitch;
-double measured_roll, measured_pitch, measured_altitude;
-double measured_roll_rate, measured_pitch_rate, measured_yaw_rate;
-double target_roll, target_pitch, target_altitude;
-double target_roll_rate, target_pitch_rate, target_yaw_rate;
-double corrected_roll_rate, corrected_pitch_rate, corrected_yaw_rate, corrected_force;
+float avg_pressure;
+float mpu_roll, mpu_pitch;
+float measured_roll, measured_pitch, measured_altitude;
+float measured_roll_rate, measured_pitch_rate, measured_yaw_rate;
+float target_roll, target_pitch, target_altitude;
+float target_roll_rate, target_pitch_rate, target_yaw_rate;
+float corrected_roll_rate, corrected_pitch_rate, corrected_yaw_rate, corrected_force;
 
 Servo motor0;
 Servo motor1;
 Servo motor2;
 Servo motor3;
-double motor_target[4];
+float motor_target[4];
 
-double attention;
+float attention;
 
 void sample_controller()
 {
@@ -70,7 +73,7 @@ void sample_controller()
   target_pitch = 0;
   target_yaw_rate = 0;
   target_altitude = 0.3;
-  //target_altitude += (attention - 7.0) / 7.0;
+  //target_altitude += (attention - 7.0f) / 7.0f;
 }
 
 void setup()
@@ -102,7 +105,6 @@ void setup()
 void loop()
 {
   static bool landing = false;
-  long start = micros();
   update_sensors();
   update_motors();
 
@@ -117,7 +119,7 @@ void loop()
   }
   if (millis() / 1000 >= 5 + FLIGHT_TIME)
   {
-    target_altitude = 0.0;
+    target_altitude = 0.0f;
     Serial.print("Beginning landing. Altitude: ");
     Serial.println(measured_altitude);
     landing = true;
@@ -162,14 +164,4 @@ void loop()
   Serial.print("    ");
   Serial.println(measured_altitude);
 #endif
-
-  long dt = micros() - start;
-  p_count = 0;
-  avg_pressure = 0;
-  do
-  {
-    avg_pressure += get_pressure();
-    p_count++;
-  } while (dt < rate_dt * 1000);
-  avg_pressure /= p_count;
 }

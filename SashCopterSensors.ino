@@ -1,3 +1,13 @@
+float convert_raw_accel(int raw)
+{
+  return (raw * 2.0f) / 32678.0f;
+}
+
+float convert_raw_gyro(int raw)
+{
+  return (raw * 250.0f) / 32678.0f;
+}
+
 float get_pressure()
 {
   char status;
@@ -87,6 +97,7 @@ float get_altitude()
 
 void update_mpu()
 {
+  //Read from external sensor
   Wire.beginTransmission(mpu_address);
   Wire.write(0x3B);
   Wire.endTransmission(false);
@@ -102,6 +113,8 @@ void update_mpu()
   ax = fax * alpha + (ax * (1.0f - alpha));
   ay = fay * alpha + (ay * (1.0f - alpha));
   az = faz * alpha + (az * (1.0f - alpha));
+
+  CurieIMU.readMotionSensor(curie_ax, curie_ay, curie_az, curie_gx, curie_gy, curie_gz);
 
 #if MPU_RAW == 1
   Serial.print("fax, fay, faz, ax, ay, az, gx, gy, gz:    ");
@@ -129,6 +142,19 @@ void update_mpu()
 
 void init_sensors()
 {
+  CurieIMU.begin();
+  CurieIMU.autoCalibrateGyroOffset();
+  CurieIMU.autoCalibrateAccelerometerOffset(X_AXIS, 0);
+  CurieIMU.autoCalibrateAccelerometerOffset(Y_AXIS, 0);
+  CurieIMU.autoCalibrateAccelerometerOffset(Z_AXIS, 1);
+
+  const long hz = 1000 / rate_dt;
+  CurieIMU.setGyroRate(hz);
+  CurieIMU.setAccelerometerRate(hz);
+  CurieIMU.setAccelerometerRange(2);
+  CurieIMU.setGyroRange(250);
+  filter.begin(hz);
+
   Wire.begin();
   Wire.beginTransmission(mpu_address);
   Wire.write(0x6B);
@@ -176,12 +202,25 @@ void update_attitude()
   mpu_roll = complementary_filter(mpu_roll, gx, roll);
   mpu_pitch = complementary_filter(mpu_pitch, gy, pitch);
 
+  float c_ax = convert_raw_accel(curie_ax);
+  float c_ay = convert_raw_accel(curie_ay);
+  float c_az = convert_raw_accel(curie_az);
+  float c_gx = convert_raw_gyro(curie_gx);
+  float c_gy = convert_raw_gyro(curie_gy);
+  float c_gz = convert_raw_gyro(curie_gz);
+
+  float curie_roll = filter.getRoll();
+  float curie_pitch = filter.getPitch();
+  float curie_yaw = filter.getYaw();
+
   /*
       IMPORTANT: THE MPU IS TURNED BY 90 DEGREES ON THE DRONE. AS A RESULT, THE ROLL AND THE PITCH NEED TO BE SWITCHED. THIS IS SPECIFIC TO MY DRONE!
       measured_roll has also experimentally observed to have an offset of -5.5 degrees. Similarly, measured_pitch has an offset of -1.1 degrees.
   */
-  measured_roll = -mpu_pitch + 5;
-  measured_pitch = mpu_roll + 1.1f;
+
+  //THIS WILL HAVE TO BE CHANGED DEPENDING ON THE ORIENTATION OF THE ARDUINO101
+  measured_roll = (-mpu_pitch + 5 + curie_roll) / 2;
+  measured_pitch = (mpu_roll + 1.1f + curie_pitch) / 2;
 
 #if ACCEL_CALC == 1
   Serial.print("Calculated accelerometer roll: ");

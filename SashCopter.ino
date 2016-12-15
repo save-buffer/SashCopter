@@ -1,3 +1,20 @@
+#include <MadgwickAHRS.h>
+
+#include <BMI160.h>
+#include <CurieIMU.h>
+
+#include <BLEAttribute.h>
+#include <BLECentral.h>
+#include <BLECharacteristic.h>
+#include <BLECommon.h>
+#include <BLEDescriptor.h>
+#include <BLEPeripheral.h>
+#include <BLEService.h>
+#include <BLETypedCharacteristic.h>
+#include <BLETypedCharacteristics.h>
+#include <BLEUuid.h>
+#include <CurieBLE.h>
+
 #include <Wire.h>
 #include <Servo.h>
 #include <SPI.h>
@@ -38,11 +55,18 @@
 
 TFT screen = TFT(lcd_cs, dc, rst);
 
+BLEPeripheral board;
+BLEService data("100D");
+BLECharacteristic("2A38, BLERead | BLENotify, 
+
 SFE_BMP180 altimeter;
 float baseline_pressure;
 const int mpu_address = 0x68;
 
+Madgwick filter;
+
 float ax, ay, az, temperature, gx, gy, gz;
+int curie_ax, curie_ay, curie_az, curie_temperature, curie_gx, curie_gy, curie_gz;
 
 const float K = 1.0f;
 const long rate_dt = 30;

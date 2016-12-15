@@ -57,7 +57,7 @@ TFT screen = TFT(lcd_cs, dc, rst);
 
 BLEPeripheral board;
 BLEService data("100D");
-BLECharacteristic("2A38, BLERead | BLENotify, 
+//BLECharacteristic("2A38, BLERead | BLENotify, 3);
 
 SFE_BMP180 altimeter;
 float baseline_pressure;

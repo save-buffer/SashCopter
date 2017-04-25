@@ -51,6 +51,8 @@
 #define FLIGHT_TIME 10
 /* If 1, will use BMP180. If 0, will use ultrasonic range finder */
 #define ALTIMETER 0
+
+#define TRANSMIT_BLE 0
 #define MPU_THERMOMETER 1
 #define CURIE_MPU 0
 
@@ -59,7 +61,12 @@ TFT screen = TFT(lcd_cs, dc, rst);
 
 BLEPeripheral board;
 BLEService data("100D");
-//BLECharacteristic("2A38, BLERead | BLENotify, 3);
+BLEFloatCharacteristic ble_roll("100D", BLERead, 4);
+BLEFloatCharacteristic ble_pitch("100D", BLERead, 4);
+BLEFloatCharacteristic ble_alt("100D", BLERead, 4);
+BLEFloatCharacteristic ctr_roll("100D", BLEWrite, 4);
+BLEFloatCharacteristic ctr_pitch("100D", BLEWrite, 4);
+BLEFloatCharacteristic ctr_alt("100D", BLEWrite, 4);
 
 SFE_BMP180 altimeter;
 float baseline_pressure;
@@ -94,101 +101,126 @@ float attention;
 
 void sample_controller()
 {
-  /* For use with a NeuroSky MindWave */
-  //update_attention();
-  target_roll = 0;
-  target_pitch = 0;
-  target_yaw_rate = 0;
-  target_altitude = 0.3;
-  //target_altitude += (attention - 7.0f) / 7.0f;
+#if TRANSMIT_BLE == 1
+    if(ctr_roll.written())
+	target_roll = ctr_roll.value();
+    if(ctr_pitch.written())
+	target_pitch = ctr_pitch.value();
+    if(ctr_alt.written())
+	target_altitude = ctr_alt.value();
+#else
+    /* For use with a NeuroSky MindWave */
+    //update_attention();
+    target_roll = 0;
+    target_pitch = 0;
+    target_yaw_rate = 0;
+    target_altitude = 0.3;
+    //target_altitude += (attention - 7.0f) / 7.0f;
+#endif;
 }
 
 void setup()
 {
-  pinMode(trig, OUTPUT);
-  pinMode(echo, INPUT);
-  screen.begin();
-  screen.background(0, 0, 0);
-  screen.stroke(255, 255, 255);
-  screen.setTextSize(1);
-  Serial.begin(9600);
-  init_sensors();
-  init_motors();
-  p_count = 0;
-  do
-  {
-    p_count++;
-    avg_pressure += get_pressure();
-  } while (millis() < 6000);
-  avg_pressure /= p_count;
-  baseline_pressure = avg_pressure;
-  Serial.print("Baseline Pressure: ");
-  Serial.println(baseline_pressure);
-  Serial.print("Baseline altitude: ");
-  Serial.println(get_altitude());
+#if TRANSMIT_BLE == 1
+    board.setLocalName("SashCopter");
+    board.setAdvertisedServiceUuid(data.uuid());
+    board.addAttribute(data);
+    board.addCharacteristic(ble_roll);
+    board.addCharacteristic(ble_pitch);
+    board.addCharacteristic(ble_alt);
+    board.addCharacteristic(ctr_roll);
+    board.addCharacteristic(ctr_pitch);
+    board.addCharacteristic(ctr_alt);
+    
+    board.begin();
+    BLECentral central;
+    while(!central && !central.connected())
+	central = data.central();
+#endif
+    pinMode(trig, OUTPUT);
+    pinMode(echo, INPUT);
+    screen.begin();
+    screen.background(0, 0, 0);
+    screen.stroke(255, 255, 255);
+    screen.setTextSize(1);
+    Serial.begin(9600);
+    init_sensors();
+    init_motors();
+    p_count = 0;
+    do
+    {
+	p_count++;
+	avg_pressure += get_pressure();
+    } while (millis() < 6000);
+    avg_pressure /= p_count;
+    baseline_pressure = avg_pressure;
+    Serial.print("Baseline Pressure: ");
+    Serial.println(baseline_pressure);
+    Serial.print("Baseline altitude: ");
+    Serial.println(get_altitude());
 }
 
 
 void loop()
 {
-  static bool landing = false;
-  update_sensors();
-  update_motors();
+    static bool landing = false;
+    update_sensors();
+    update_motors();
 
-  if (millis() / 1000 >= 15 + FLIGHT_TIME)
-  {
-    write_all(0);
-    screen.background(0, 0, 0);
-    String x = "Forced landing.\nAltitude: ";
-    x += measured_altitude;
-    screen.text(x.c_str(), 0, 0);
-    for (;;);
-  }
-  if (millis() / 1000 >= 5 + FLIGHT_TIME)
-  {
-    target_altitude = 0.0f;
-    Serial.print("Beginning landing. Altitude: ");
-    Serial.println(measured_altitude);
-    landing = true;
-  }
-  if (landing)
-  {
-    if (measured_altitude <= 0.1)
+    if (millis() / 1000 >= 15 + FLIGHT_TIME)
     {
-      write_all(0);
-      screen.background(0, 0, 0);
-      screen.text("Landed!", 0, 0);
-      Serial.println("Landed");
-      for (;;);
+	write_all(0);
+	screen.background(0, 0, 0);
+	String x = "Forced landing.\nAltitude: ";
+	x += measured_altitude;
+	screen.text(x.c_str(), 0, 0);
+	for (;;);
     }
-  }
-  static String data("");
-  screen.stroke(0, 0, 0);
-  screen.text(data.c_str(), 0, 0);
-  screen.stroke(255, 255, 255);
-  data = "Measured Roll: ";
-  if (landing)
-    data = "Landing.\n" + data;
-  data += measured_roll;
-  data += "\nMeasured Pitch: ";
-  data += measured_pitch;
-  data += "\nMeasured Altitude: ";
-  data += measured_altitude;
-  data += "\nMotor 0: ";
-  data += motor_target[0];
-  data += "\nMotor 1: ";
-  data += motor_target[1];
-  data += "\nMotor 2: ";
-  data += motor_target[2];
-  data += "\nMotor 3: ";
-  data += motor_target[3];
-  screen.text(data.c_str(), 0, 0);
+    if (millis() / 1000 >= 5 + FLIGHT_TIME)
+    {
+	target_altitude = 0.0f;
+	Serial.print("Beginning landing. Altitude: ");
+	Serial.println(measured_altitude);
+	landing = true;
+    }
+    if (landing)
+    {
+	if (measured_altitude <= 0.1)
+	{
+	    write_all(0);
+	    screen.background(0, 0, 0);
+	    screen.text("Landed!", 0, 0);
+	    Serial.println("Landed");
+	    for (;;);
+	}
+    }
+    static String data("");
+    screen.stroke(0, 0, 0);
+    screen.text(data.c_str(), 0, 0);
+    screen.stroke(255, 255, 255);
+    data = "Measured Roll: ";
+    if (landing)
+	data = "Landing.\n" + data;
+    data += measured_roll;
+    data += "\nMeasured Pitch: ";
+    data += measured_pitch;
+    data += "\nMeasured Altitude: ";
+    data += measured_altitude;
+    data += "\nMotor 0: ";
+    data += motor_target[0];
+    data += "\nMotor 1: ";
+    data += motor_target[1];
+    data += "\nMotor 2: ";
+    data += motor_target[2];
+    data += "\nMotor 3: ";
+    data += motor_target[3];
+    screen.text(data.c_str(), 0, 0);
 #if MEASURED_ANGLES == 1
-  Serial.print("Measured Roll, Pitch, Altitude:  ");
-  Serial.print(measured_roll
-  Serial.print("    ");
-  Serial.print(measured_pitch);
-  Serial.print("    ");
-  Serial.println(measured_altitude);
+    Serial.print("Measured Roll, Pitch, Altitude:  ");
+    Serial.print(measured_roll);
+    Serial.print("    ");
+    Serial.print(measured_pitch);
+    Serial.print("    ");
+    Serial.println(measured_altitude);
 #endif
 }

@@ -241,6 +241,7 @@ void update_sensors()
   static long alt_time = 0;
   static long rate_time = 0;
   static long att_time = 0;
+  update_attitude();
   if (millis() - rate_time >= rate_dt)
   {
     correct_rates();
@@ -248,7 +249,7 @@ void update_sensors()
   }
   if (millis() - att_time >= attitude_dt)
   {
-    sample_controller();
+    sample_controller();    
     correct_attitude();
     att_time = millis();
   }
@@ -260,5 +261,11 @@ void update_sensors()
     update_altitude(get_temperature());
 #endif
     alt_time = millis();
+
+#if TRANSMIT_BLE == 1
+    ble_roll.setValue(measured_roll);
+    ble_pitch.setValue(measured_pitch);
+    ble_alt.setValue(measured_altitude);
+#endif
   }
 }

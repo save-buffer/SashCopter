@@ -201,7 +201,7 @@ void update_attitude()
   float pitch = (atan2(ax, sqrt((ay * ay) + (az * az))) * 180.0f) / 3.14159;
   mpu_roll = complementary_filter(mpu_roll, gx, roll);
   mpu_pitch = complementary_filter(mpu_pitch, gy, pitch);
-
+#if CURIE_MPU == 1
   float c_ax = convert_raw_accel(curie_ax);
   float c_ay = convert_raw_accel(curie_ay);
   float c_az = convert_raw_accel(curie_az);
@@ -219,8 +219,14 @@ void update_attitude()
   */
 
   //THIS WILL HAVE TO BE CHANGED DEPENDING ON THE ORIENTATION OF THE ARDUINO101
+
+
   measured_roll = (-mpu_pitch + 5 + curie_roll) / 2;
   measured_pitch = (mpu_roll + 1.1f + curie_pitch) / 2;
+#else
+  measured_roll = (-mpu_pitch + 5);
+  measured_pitch = (mpu_roll + 1.1f);
+#endif
 
 #if ACCEL_CALC == 1
   Serial.print("Calculated accelerometer roll: ");

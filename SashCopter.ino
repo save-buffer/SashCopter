@@ -52,6 +52,8 @@
 /* If 1, will use BMP180. If 0, will use ultrasonic range finder */
 #define ALTIMETER 0
 #define MPU_THERMOMETER 1
+#define CURIE_MPU 0
+
 
 TFT screen = TFT(lcd_cs, dc, rst);
 

@@ -22,8 +22,8 @@ void correct_attitude()
 {
   float e_roll = target_roll - measured_roll;
   float e_pitch = target_pitch - measured_pitch;
-  target_roll_rate += roll_controller(e_roll);
-  target_pitch_rate += pitch_controller(e_pitch);
+  target_roll_rate = roll_controller(e_roll);
+  target_pitch_rate = pitch_controller(e_pitch);
 #if ATTITUDE_PID == 1
   Serial.print("Target roll rate, Target pitch rate: ");
   Serial.print(target_roll_rate);
